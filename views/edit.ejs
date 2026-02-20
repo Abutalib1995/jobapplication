@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Edit Application</h2>
+<form method="POST" action="/admin/update/<%= app.id %>">
+<input name="name" value="<%= app.name %>" required><br><br>
+<input name="phone" value="<%= app.phone %>" required><br><br>
+<input name="email" value="<%= app.email %>" required><br><br>
+<input name="position" value="<%= app.position %>" required><br><br>
+<button type="submit">Update</button>
+</form>
+<br>
+<a href="/admin">Back</a>
+</body>
+</html>

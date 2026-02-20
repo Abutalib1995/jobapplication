@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Admin Panel</h2>
+<table border="1" cellpadding="5">
+<tr>
+<th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Position</th><th>Action</th>
+</tr>
+<% applications.forEach(function(app){ %>
+<tr>
+<td><%= app.application_id %></td>
+<td><%= app.name %></td>
+<td><%= app.phone %></td>
+<td><%= app.email %></td>
+<td><%= app.position %></td>
+<td>
+<a href="/admin/edit/<%= app.id %>">Edit</a> |
+<a href="/admin/delete/<%= app.id %>" onclick="return confirm('Delete?')">Delete</a>
+</td>
+</tr>
+<% }) %>
+</table>
+<br>
+<a href="/apply">Back</a>
+</body>
+</html>

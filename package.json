@@ -1,7 +1,7 @@
 {
-  "name": "render-job-app-system-auto-table",
+  "name": "render-job-app-system-admin",
   "version": "1.0.0",
-  "description": "Job Application System with PostgreSQL (Auto Table Create)",
+  "description": "Job Application System with Admin Panel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

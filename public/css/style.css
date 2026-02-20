@@ -1,0 +1,5 @@
+
+body{font-family:'Segoe UI';background:#f2f4f8}
+.container-box{background:#fff;padding:40px;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,0.1)}
+.section-title{border-bottom:2px solid #1f3c88;margin:20px 0 10px;padding-bottom:5px;color:#1f3c88}
+.btn-premium{background:#1f3c88;color:#fff;border:none;padding:10px 15px;border-radius:8px}

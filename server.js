@@ -3,7 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const { initDB } = require('./db');
-const routes = require('./routes/applicationRoutes');
+const routes = require('./routes/routes');
 
 const app = express();
 
@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended:true }));
 app.use(express.static('public'));
 
 app.use(session({
-  secret:'secretkey',
+  secret:'enterprise_secret_key',
   resave:false,
   saveUninitialized:false
 }));
@@ -22,5 +22,5 @@ app.use('/',routes);
 const PORT = process.env.PORT || 3000;
 
 initDB().then(()=>{
-  app.listen(PORT,()=>console.log("Server Running With Users"));
+  app.listen(PORT,()=>console.log("Enterprise System Running"));
 });

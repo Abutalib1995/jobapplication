@@ -1,95 +1,100 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
+const bcrypt = require('bcrypt');
+const multer = require('multer');
 const PDFDocument = require('pdfkit');
 
-function generateId() {
-  return 'APP' + Math.floor(100000 + Math.random() * 900000);
+const upload = multer({ dest:'public/uploads/' });
+
+function genId(){ return 'APP'+Math.floor(100000+Math.random()*900000); }
+
+function isAuth(req,res,next){
+  if(req.session.user) return next();
+  res.redirect('/login');
 }
 
-// Home redirect
-router.get('/', (req, res) => res.redirect('/apply'));
+function isAdmin(req,res,next){
+  if(req.session.user && req.session.user.role==='admin') return next();
+  res.redirect('/dashboard');
+}
 
-// Apply Form
-router.get('/apply', (req, res) => res.render('apply'));
+router.get('/',(req,res)=>res.redirect('/login'));
 
-router.post('/apply', async (req, res) => {
-  const id = generateId();
+// ---------- Register ----------
+router.get('/register',(req,res)=>res.render('register'));
 
+router.post('/register',async (req,res)=>{
+  const hash = await bcrypt.hash(req.body.password,10);
   await pool.query(
-    'INSERT INTO applications(application_id, name, phone, email, position) VALUES($1,$2,$3,$4,$5)',
-    [id, req.body.name, req.body.phone, req.body.email, req.body.position]
+    'INSERT INTO users(name,email,password) VALUES($1,$2,$3)',
+    [req.body.name,req.body.email,hash]
   );
-
-  res.redirect(`/download/${id}`);
+  res.redirect('/login');
 });
 
-// Search
-router.get('/search', (req, res) => res.render('search'));
+// ---------- Login ----------
+router.get('/login',(req,res)=>res.render('login'));
 
-router.post('/search', async (req, res) => {
-  const result = await pool.query(
-    'SELECT * FROM applications WHERE application_id=$1',
-    [req.body.applicationId]
-  );
-
-  if (result.rows.length === 0) return res.send("Application Not Found");
-
-  res.redirect(`/download/${req.body.applicationId}`);
+router.post('/login',async (req,res)=>{
+  const r = await pool.query('SELECT * FROM users WHERE email=$1',[req.body.email]);
+  if(r.rows.length===0) return res.send("Invalid");
+  const match = await bcrypt.compare(req.body.password,r.rows[0].password);
+  if(match){
+    req.session.user = r.rows[0];
+    res.redirect('/dashboard');
+  } else res.send("Invalid");
 });
 
-// Download PDF
-router.get('/download/:id', async (req, res) => {
-  const result = await pool.query(
-    'SELECT * FROM applications WHERE application_id=$1',
-    [req.params.id]
+router.get('/logout',(req,res)=>{
+  req.session.destroy(()=>res.redirect('/login'));
+});
+
+// ---------- Dashboard ----------
+router.get('/dashboard',isAuth,async (req,res)=>{
+  if(req.session.user.role==='admin'){
+    const all = await pool.query('SELECT * FROM applications ORDER BY created_at DESC');
+    return res.render('admin',{apps:all.rows,user:req.session.user});
+  } else {
+    const mine = await pool.query('SELECT * FROM applications WHERE user_id=$1 ORDER BY created_at DESC',[req.session.user.id]);
+    return res.render('dashboard',{apps:mine.rows,user:req.session.user});
+  }
+});
+
+// ---------- Apply ----------
+router.get('/apply',isAuth,(req,res)=>res.render('apply'));
+
+router.post('/apply',isAuth,upload.single('photo'),async (req,res)=>{
+  const id = genId();
+  await pool.query(
+    'INSERT INTO applications(application_id,user_id,full_name,phone,email,position,photo) VALUES($1,$2,$3,$4,$5,$6,$7)',
+    [id,req.session.user.id,req.body.full_name,req.body.phone,req.body.email,req.body.position,req.file?.filename]
   );
+  res.redirect('/view/'+id);
+});
 
-  if (result.rows.length === 0) return res.send("Application Not Found");
+router.get('/view/:id',isAuth,async (req,res)=>{
+  const r = await pool.query('SELECT * FROM applications WHERE application_id=$1',[req.params.id]);
+  if(r.rows.length===0) return res.send("Not Found");
+  res.render('view',{app:r.rows[0]});
+});
 
-  const app = result.rows[0];
-
+router.get('/download/:id',isAuth,async (req,res)=>{
+  const r = await pool.query('SELECT * FROM applications WHERE application_id=$1',[req.params.id]);
+  if(r.rows.length===0) return res.send("Not Found");
+  const app = r.rows[0];
   const doc = new PDFDocument();
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename=application.pdf');
-
+  res.setHeader('Content-Type','application/pdf');
+  res.setHeader('Content-Disposition','attachment; filename=form.pdf');
   doc.pipe(res);
-  doc.text(`Application ID: ${app.application_id}`);
-  doc.text(`Name: ${app.name}`);
-  doc.text(`Phone: ${app.phone}`);
-  doc.text(`Email: ${app.email}`);
-  doc.text(`Position: ${app.position}`);
+  doc.text("Application ID: "+app.application_id);
+  doc.text("Name: "+app.full_name);
   doc.end();
 });
 
-// ---------------- ADMIN PANEL ----------------
-
-// View All
-router.get('/admin', async (req, res) => {
-  const result = await pool.query('SELECT * FROM applications ORDER BY created_at DESC');
-  res.render('admin', { applications: result.rows });
-});
-
-// Edit Page
-router.get('/admin/edit/:id', async (req, res) => {
-  const result = await pool.query('SELECT * FROM applications WHERE id=$1', [req.params.id]);
-  if (result.rows.length === 0) return res.send("Not Found");
-  res.render('edit', { app: result.rows[0] });
-});
-
-// Update
-router.post('/admin/update/:id', async (req, res) => {
-  await pool.query(
-    'UPDATE applications SET name=$1, phone=$2, email=$3, position=$4 WHERE id=$5',
-    [req.body.name, req.body.phone, req.body.email, req.body.position, req.params.id]
-  );
-  res.redirect('/admin');
-});
-
-// Delete
-router.get('/admin/delete/:id', async (req, res) => {
-  await pool.query('DELETE FROM applications WHERE id=$1', [req.params.id]);
-  res.redirect('/admin');
+router.get('/admin/delete/:id',isAdmin,async (req,res)=>{
+  await pool.query('DELETE FROM applications WHERE id=$1',[req.params.id]);
+  res.redirect('/dashboard');
 });
 
 module.exports = router;

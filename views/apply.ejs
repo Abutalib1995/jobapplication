@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html>
-<body>
-<h2>Job Application Form</h2>
-<form method="POST" action="/apply">
-<input name="name" placeholder="Full Name" required><br><br>
-<input name="phone" placeholder="Phone" required><br><br>
-<input name="email" placeholder="Email" required><br><br>
-<input name="position" placeholder="Position" required><br><br>
-<button type="submit">Submit</button>
+<head><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></head>
+<body class="container mt-5">
+<h3>Submit Application</h3>
+<form method="POST" enctype="multipart/form-data">
+<input class="form-control mb-2" name="full_name" placeholder="Full Name">
+<input class="form-control mb-2" name="phone" placeholder="Phone">
+<input class="form-control mb-2" name="email" placeholder="Email">
+<input class="form-control mb-2" name="position" placeholder="Position">
+<input class="form-control mb-2" type="file" name="photo">
+<button class="btn btn-primary">Submit</button>
 </form>
-<br>
-<a href="/search">Search</a> |
-<a href="/admin">Admin Panel</a>
 </body>
 </html>
